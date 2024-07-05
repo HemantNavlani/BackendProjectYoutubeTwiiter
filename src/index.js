@@ -2,7 +2,7 @@
 //This can be used but it disturbs the consitency of our code so we will use other approach
 
 import dotenv from "dotenv"
-dotenv.config({path:'./env'})
+dotenv.config({path:'./.env'})
 
 
 
