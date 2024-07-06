@@ -127,8 +127,8 @@ const loginUser = asyncHandler(async (req,res)=>{
 
 const logoutUser = asyncHandler(async (req,res)=>{
     await User.findByIdAndUpdate(req.user._id,{
-        $set:{
-            refreshToken:undefined
+        $unset:{
+            refreshToken:1
         },
     },{
         new:true
@@ -185,11 +185,16 @@ try {
 })
 
 const changeCurrentPassword = asyncHandler(async(req,res)=>{
-    const {oldPassword,newPassword} = req.body
 
-    const user = User.findById(req.user?._id)
-    const isPasswordCorrect = await user.isPasswordCorrect(oldPassword)
-    if (!isPasswordCorrect) throw new ApiError(400,'Invalid old password');
+    const {oldPassword,newPassword} = req.body
+    if (!oldPassword || !newPassword) throw new ApiError(400,"Old and new password are required")
+        
+    const user = await User.findById(req.user?._id)
+
+    const isPasswordValid = await user.isPasswordCorrect(oldPassword)
+
+
+    if (!isPasswordValid) throw new ApiError(400,'Invalid old password');
 
     user.password = newPassword
     await user.save({validateBeforeSave:false});
@@ -202,7 +207,7 @@ const changeCurrentPassword = asyncHandler(async(req,res)=>{
 const getCurrentUser = asyncHandler(async(req,res)=>{
      return res
      .status(200)
-     .json(200,req.user,"current user fetched successfully");
+     .json(new ApiResponse(200,req.user,"current user fetched successfully"));
 })
 
 const updateAccountDetails = asyncHandler(async(req,res)=>{
@@ -303,10 +308,18 @@ const getUserChannelProfile = asyncHandler(async(req,res)=>{
     {
         $addFields:{
             subscribersCount:{
-                $size:"$subcribers"
+                $cond: {
+                     if: { $isArray: "$subcribers" }, 
+                     then: { $size: "$subcribers" }, 
+                     else: 0
+                }
             },
             channelsSubscribedToCount:{
-                $size:"$subscribedTo"
+                $cond: {
+                    if: { $isArray: "$subscribedTo" }, 
+                    then: { $size: "$subscribedTo" }, 
+                    else: 0
+               }
             },
             isSubscribed:{
                 $cond:{
@@ -331,7 +344,8 @@ const getUserChannelProfile = asyncHandler(async(req,res)=>{
     }
 ]);
 
-console.log(channel);
+
+// console.log(channel);
 
 if (!channel?.length) throw new ApiError(404,"channel does not exist");
 
