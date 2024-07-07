@@ -238,7 +238,7 @@ const updateUserAvatar = asyncHandler(async(req,res)=>{
     const avatar = await uploadOnCloudinary(avatarLocalPath)
 
     if (!avatar) throw new ApiError(400,"Error while uploading avatar");
-
+     
     const user = await User.findByIdAndUpdate(
         req.user?._id,
         {$set:{
@@ -399,9 +399,6 @@ const getWatchHistory = asyncHandler(async(req,res)=>{
                 ]
             }
         },
-        {
-
-        }
     ])
 
     return res
