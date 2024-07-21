@@ -2,8 +2,9 @@ import mongoose from 'mongoose'
 import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import {Tweet} from '../models/tweet.model.js'
-
+import { asyncHandler } from '../utils/asyncHandler.js';
 const createTweet = asyncHandler(async(req,res)=>{
+    console.log(req.body);
     const {content} = req.body;
     if (!content) throw new ApiError(400,'Content is required');
 
@@ -96,7 +97,7 @@ const deleteTweet = asyncHandler(async(req,res)=>{
     const tweet = await Tweet.findById(tweetId);
     if (!tweet) throw new ApiError(404,"Tweet not found");
 
-    if (tweet.owner.toString()!==req.user?._id) throw new ApiError("400","Only owner can delete its tweet");
+    if (tweet.owner.toString()!==req.user?._id.toString()) throw new ApiError("400","Only owner can delete its tweet");
 
     await Tweet.findByIdAndDelete(tweetId)
 
