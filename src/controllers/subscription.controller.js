@@ -74,7 +74,11 @@ const getUserChannelSubscriber = asyncHandler(async(req,res)=>{
                                 }
                             },
                             subscribersCount : {
-                                $size : "subscribedToSubscriber",
+                                $cond: {
+                                    if: { $isArray: "$subscribedTo" }, 
+                                    then: { $size: "$subscribedTo" }, 
+                                    else: 0
+                               }
                             }
                         }
                     }
@@ -104,63 +108,64 @@ const getUserChannelSubscriber = asyncHandler(async(req,res)=>{
 
 const getSubscribedChannels = asyncHandler(async(req,res)=>{
     const {subscriberId} = req.params;
-
-    const subscribedChannels = Subscription.aggregate([
+    
+    const subscribedChannels = await Subscription.aggregate([
         {
-            $match:{
-                subsciber: new mongoose.Types.ObjectId(subscriberId)
-            }
+            $match: {
+                subscriber: new mongoose.Types.ObjectId(subscriberId),
+            },
         },
         {
-            $lookup:{
-                from:"users",
-                localField:"channel",
-                foreignField:"_id",
-                as:"subscribedChannels",
-                pipeline:[
+            $lookup: {
+                from: "users",
+                localField: "channel",
+                foreignField: "_id",
+                as: "subscribedChannel",
+                pipeline: [
                     {
-                        $lookup:{
-                            from:"videos",
-                            localField:"_id",
-                            foreignField:"owner",
-                            as:"videos",
-                        }
+                        $lookup: {
+                            from: "videos",
+                            localField: "_id",
+                            foreignField: "owner",
+                            as: "videos",
+                        },
                     },
                     {
-                        $addFields:{
-                            latestVideo:{
-                                $last:"$videos",
-                            }
-                        }
-                    }
-                ]
-            }
+                        $addFields: {
+                            latestVideo: {
+                                $last: "$videos",
+                            },
+                        },
+                    },
+                ],
+            },
         },
         {
-            $unwind:"$subscribedChannel",
+            $unwind: "$subscribedChannel",
         },
         {
-            $project:{
-                _id:0,
-                subscribedChannel:{
-                    _id:1,
-                    username:1,
-                    fullName:1,
-                    "avatar.url":1,
-                    latestVideo:{
-                        _id:1,
-                        "videoFile.url":1,
-                        "thumbnail.url":1,
-                        owner:1,
-                        title:1,
-                        duration:1,
-                        createdAt:1,
-                        views:1
-                    }
-                }
-            }
-        }
-    ])
+            $project: {
+                _id: 0,
+                subscribedChannel: {
+                    _id: 1,
+                    username: 1,
+                    fullName: 1,
+                    "avatar.url": 1,
+                    latestVideo: {
+                        _id: 1,
+                        "videoFile.url": 1,
+                        "thumbnail.url": 1,
+                        owner: 1,
+                        title: 1,
+                        description: 1,
+                        duration: 1,
+                        createdAt: 1,
+                        views: 1
+                    },
+                },
+            },
+        },
+    ]);
     return res.status(200)
     .json(
         new ApiResponse(
