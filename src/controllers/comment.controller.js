@@ -4,18 +4,18 @@ import { ApiError } from '../utils/ApiError.js';
 import { Video } from '../models/video.model.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { Comment } from '../models/comment.model.js';
-import { Like } from '../models/like.model';
+import { Like } from '../models/like.model.js';
 const getVideoComments = asyncHandler(async(req,res)=>{
     const {videoId} = req.params;
     const {page = 1, limit = 10} = req.query  
-
+    
     const video = await Video.findById(videoId)
     if (!video) throw new ApiError(404,"Video not found");
 
     const commentAggregate = Comment.aggregate([
         {
             $match:{
-                video : new mongoose.Types.ObjectId(videoId);
+                video : new mongoose.Types.ObjectId(videoId)
             }
         },
         {
@@ -102,7 +102,7 @@ const addComment = asyncHandler(async(req,res)=>{
 const deleteComment = asyncHandler(async(req,res)=>{
     const {commentId} = req.params
     
-    const comment = Comment.findById(commentId)
+    const comment = await Comment.findById(commentId)
     if (!comment) throw new ApiError(404,"Comment not found");
 
     if (comment.owner.toString()!==req.user?._id.toString()) throw new ApiError(400,"Only owner can delete the comment");
