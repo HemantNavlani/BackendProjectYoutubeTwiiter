@@ -89,7 +89,7 @@ const removeVideoFromPlaylist = asyncHandler(async(req,res)=>{
 
     if (playlist.owner.toString() !== req.user?._id.toString()) throw new ApiError(400,"Only owner of the playlist can remove videos from the playlist");
 
-    const newPlaylist = Playlist.findByIdAndUpdate(
+    const newPlaylist = await Playlist.findByIdAndUpdate(
        playlistId,
        {
               $pull:{
@@ -101,7 +101,7 @@ const removeVideoFromPlaylist = asyncHandler(async(req,res)=>{
        }
     )
     if (!newPlaylist) throw new ApiError(500,"Removal of video from playlist failed, try again");
-    return res.status(200).json(new ApiResponse(200,newPlaylist,"Video removes successfully"))
+    return res.status(200).json( new ApiResponse(200,newPlaylist,"Video removed successfully"))
 })
 const getUserPlaylists = asyncHandler(async(req,res)=>{
     const {userId} = req.params;
@@ -138,7 +138,7 @@ const getUserPlaylists = asyncHandler(async(req,res)=>{
               $project:{
                      _id:1,
                      name:1,
-                     description,
+                     description:1,
                      totalVideos:1,
                      totalViews:1,
                      updatedAt:1,
@@ -149,82 +149,80 @@ const getUserPlaylists = asyncHandler(async(req,res)=>{
     return res.status(200)
     .json(200,new ApiResponse(200,playlists,"User playlists fetched successfully"))
 })
-const getPlaylistsById = asyncHandler(async(req,res)=>{
+const getPlaylistById = asyncHandler(async(req,res)=>{
     const {playlistId} = req.params
 
     const playlist = await Playlist.findById(playlistId);
     if (!playlist) throw new ApiError(404,"Playlist not found");
 
-    const playlistVideos = Playlist.aggregate([
+const playlistVideos = await Playlist.aggregate([
        {
-              $match:{
-                     _id: new mongoose.Types.ObjectId(playlistId)
-              }
+           $match: {
+               _id: new mongoose.Types.ObjectId(playlistId)
+           }
        },
        {
-              $lookup:{
-                     from:"videos",
-                     localField:"owner",
-                     foreignField:"_id",
-                     as:"videos"
-              }
+           $lookup: {
+               from: "videos",
+               localField: "videos",
+               foreignField: "_id",
+               as: "videos",
+           }
        },
        {
-              $match:{
-                     "videos.isPublished":true
-              }
+           $match: {
+               "videos.isPublished": true
+           }
        },
        {
-              $lookup:{
-                     from:"users",
-                     localField:"owner",
-                     foreignField:"_id",
-                     as:"owner"
-              }
+           $lookup: {
+               from: "users",
+               localField: "owner",
+               foreignField: "_id",
+               as: "owner",
+           }
        },
        {
-              $addFields:{
-                     totalVideos:{
-                            $cond: {
-                                   if: { $isArray: "$videos" }, 
-                                   then: { $size: "$videos" }, 
-                                   else: 0
-                            }      
-                     },
-                     totalViews:{
-                            $sum:"$videos.views"
-                     },
-                     owner:{
-                            $first:$owner
-                     }
-              }
+           $addFields: {
+               totalVideos: {
+                   $size: "$videos"
+               },
+               totalViews: {
+                   $sum: "$videos.views"
+               },
+               owner: {
+                   $first: "$owner"
+               }
+           }
        },
        {
-              $project:{
-                     name:1,
-                     description:1,
-                     createdAt:1,
-                     updatedAt:1,
-                     totalVideos:1,
-                     totalViews:1,
-                     videos:{
-                            _id:1,
-                            "videoFile.url":1,
-                            "thumbnail.url":1,
-                            title:1,
-                            description:1,
-                            duration:1,
-                            createdAt:1,
-                            views:1,
-                     },
-                     owner:{
-                            username : 1,
-                            fullname:1,
-                            "avatar.url":1,
-                     }
-              }
+           $project: {
+               name: 1,
+               description: 1,
+               createdAt: 1,
+               updatedAt: 1,
+               totalVideos: 1,
+               totalViews: 1,
+               videos: {
+                   _id: 1,
+                   "videoFile.url": 1,
+                   "thumbnail.url": 1,
+                   title: 1,
+                   description: 1,
+                   duration: 1,
+                   createdAt: 1,
+                   views: 1
+               },
+               owner: {
+                   username: 1,
+                   fullName: 1,
+                   "avatar.url": 1
+               }
+           }
        }
-    ])
+       
+   ]);
+
     return res.status(200).json(new ApiResponse(200,playlistVideos,"Playlist videos fetched successfully"))
 })
 
@@ -235,5 +233,5 @@ export {
        addVideoToPlaylist,
        removeVideoFromPlaylist,
        getUserPlaylists,
-       getPlaylistsById,
+       getPlaylistById,
 }
