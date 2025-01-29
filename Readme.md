@@ -33,7 +33,7 @@ MongoDB running locally or on a cloud service like MongoDB Atlas
 bash
 Copy
 Edit
-git clone https://github.com/yourusername/social-media-backend.git
+git clone https://github.com/HemantNavlani/BackendProjectYoutubeTwiiter.git
 cd social-media-backend
 🔹 Install dependencies
 bash
